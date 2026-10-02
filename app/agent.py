@@ -1,6 +1,7 @@
 ﻿"""The JACK's agent loop."""
 import os
 import json
+from datetime import date, timedelta
 from dotenv import load_dotenv
 from openai import OpenAI
 from app.tools import TOOL_FUNCTIONS, TOOL_SCHEMAS
@@ -22,6 +23,8 @@ You help with attendance, study planning, deadlines and tasks.
 
 Rules:
 - The current student's id is {student_id}. Use it when calling tools.
+- Today is {today}.
+- Turn words like 'Friday' or 'tomorrow' into dates by picking from that list. If today already is that weekday, use the same weekday next week unless the student says 'today'.
 - For any attendance, timetable or deadline fact, call a tool. Never guess numbers.
 - Answer only from tool results. If data is missing, say so plainly.
 - Your name is JACK's. Always write it exactly like that.
@@ -34,10 +37,20 @@ Rules:
 """
 
 
+def today_text():
+    """Today plus the next 14 days with weekdays, so the model never does date math."""
+    d = date.today()
+    days = [(d + timedelta(days=i)).strftime("%a %Y-%m-%d") for i in range(15)]
+    return d.strftime("%A %Y-%m-%d") + ". Upcoming dates: " + ", ".join(days)
+
+
 def run_agent(user_message: str, student_id: str = "S101", history=None, think=False):
     """Run the agent until it gives a final answer. Returns (answer, trace)."""
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT.format(student_id=student_id)}
+        {
+            "role": "system",
+            "content": SYSTEM_PROMPT.format(student_id=student_id, today=today_text()),
+        }
     ]
     messages += history or []
     messages.append({"role": "user", "content": user_message})
@@ -76,4 +89,3 @@ def run_agent(user_message: str, student_id: str = "S101", history=None, think=F
             )
 
     return "Sorry, I couldn't finish that. Please try again.", trace
-

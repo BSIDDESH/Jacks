@@ -28,3 +28,8 @@ def health():
 def chat(req: ChatRequest):
     answer, trace = run_agent(req.message, student_id=req.student_id)
     return {"answer": answer, "trace": trace}
+
+
+@app.get('/')
+def root():
+    return {'name': 'JACKs API', 'docs': '/docs'}

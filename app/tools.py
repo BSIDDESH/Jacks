@@ -76,3 +76,7 @@ TOOL_SCHEMAS = [
         },
     }
 ]
+
+from app.task_tools import TASK_FUNCTIONS, TASK_SCHEMAS
+TOOL_FUNCTIONS.update(TASK_FUNCTIONS)
+TOOL_SCHEMAS.extend(TASK_SCHEMAS)
