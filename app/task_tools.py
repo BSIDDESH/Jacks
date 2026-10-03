@@ -1,9 +1,21 @@
-﻿"""Task tools: persistent to-do list per student."""
+"""Task tools: persistent to-do list per student."""
 from app.db import get_conn
 
 
 def add_task(student_id: str, title: str, due: str | None = None):
     with get_conn() as conn:
+        existing = conn.execute(
+            "SELECT id FROM tasks WHERE student_id = ? AND lower(title) = lower(?) "
+            "AND done = 0 AND ((due IS NULL AND ? IS NULL) OR due = ?)",
+            (student_id, title, due, due),
+        ).fetchone()
+        if existing:
+            return {
+                "added": False,
+                "duplicate": True,
+                "task_id": existing["id"],
+                "message": "An identical pending task already exists, so nothing new was added.",
+            }
         cur = conn.execute(
             "INSERT INTO tasks (student_id, title, due) VALUES (?, ?, ?)",
             (student_id, title, due),

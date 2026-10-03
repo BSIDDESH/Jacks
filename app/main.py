@@ -63,3 +63,17 @@ def reject(proposal_id: int):
 @app.get("/calendar")
 def get_calendar(student_id: str = "S101"):
     return {"events": calendar_service.list_events(student_id)}
+
+
+from app.tools import get_attendance as _get_attendance
+from app.task_tools import list_tasks as _list_tasks
+
+
+@app.get("/attendance")
+def attendance(student_id: str = "S101"):
+    return _get_attendance(student_id)
+
+
+@app.get("/tasks")
+def tasks(student_id: str = "S101"):
+    return _list_tasks(student_id)

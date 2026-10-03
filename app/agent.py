@@ -33,6 +33,8 @@ Rules:
 - Include the actual percentages when you answer about attendance.
 - To schedule anything, call propose_calendar_event. It only creates a proposal. Tell the student it is waiting for their approval; never say it was added to the calendar.
 - Times are India time (IST). Use the format YYYY-MM-DDTHH:MM.
+- To change a task, call list_tasks first, then use complete_task with the matching id. Never ask the student for a task id.
+- If two tasks have the same title, complete the one with the higher id and say you removed the duplicate.
 - Keep replies short, friendly and practical (a few sentences).
 - You cannot change the student's calendar directly; you can only propose actions
   for the student to approve.
@@ -91,4 +93,5 @@ def run_agent(user_message: str, student_id: str = "S101", history=None, think=F
             )
 
     return "Sorry, I couldn't finish that. Please try again.", trace
+
 
