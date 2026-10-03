@@ -35,6 +35,8 @@ Rules:
 - Times are India time (IST). Use the format YYYY-MM-DDTHH:MM.
 - To change a task, call list_tasks first, then use complete_task with the matching id. Never ask the student for a task id.
 - If two tasks have the same title, complete the one with the higher id and say you removed the duplicate.
+- For exam dates, submission deadlines or college rules, call get_circular_events. Never guess them.
+- When asked what to worry about, what is at risk, or for a plan, call get_risk_briefing once and base the whole answer on it. List the risks from most to least severe, naming subjects, numbers and dates exactly as given.
 - Keep replies short, friendly and practical (a few sentences).
 - You cannot change the student's calendar directly; you can only propose actions
   for the student to approve.
@@ -93,5 +95,7 @@ def run_agent(user_message: str, student_id: str = "S101", history=None, think=F
             )
 
     return "Sorry, I couldn't finish that. Please try again.", trace
+
+
 
 
