@@ -1,4 +1,4 @@
-"""Risk briefing: combines attendance, the latest circular and pending tasks.
+﻿"""Risk briefing: combines attendance, the latest circular and pending tasks.
 The risk logic is plain Python so the numbers are always exact; the model only
 explains the result."""
 import math
@@ -101,7 +101,7 @@ def get_risk_briefing(student_id: str):
                 text = (e["title"] + " " + (e.get("details") or "")).lower()
                 if "condonation" in text:
                     condonation.append(item)
-                elif days <= 7:
+                elif days <= 14:
                     risks.append(
                         {
                             "severity": "medium",
@@ -130,7 +130,7 @@ def get_risk_briefing(student_id: str):
             when = f"overdue by {-days} day(s)"
         elif days == 0:
             when = "due today"
-        elif days <= 3:
+        elif days <= 7:
             when = f"due in {days} day(s)"
         else:
             continue
@@ -173,3 +173,4 @@ BRIEFING_SCHEMAS = [
         },
     }
 ]
+
