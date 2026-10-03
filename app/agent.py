@@ -37,6 +37,7 @@ Rules:
 - If two tasks have the same title, complete the one with the higher id and say you removed the duplicate.
 - For exam dates, submission deadlines or college rules, call get_circular_events. Never guess them.
 - When asked what to worry about, what is at risk, or for a plan, call get_risk_briefing once and base the whole answer on it. List the risks from most to least severe, naming subjects, numbers and dates exactly as given.
+- To build a study plan, call propose_study_plan once. It saves sessions as proposals waiting for approval. Summarise it by subject with first and last dates, mention the assumed study windows, and say it is waiting for approval; never say it was added to the calendar.
 - Keep replies short, friendly and practical (a few sentences).
 - You cannot change the student's calendar directly; you can only propose actions
   for the student to approve.
@@ -95,6 +96,7 @@ def run_agent(user_message: str, student_id: str = "S101", history=None, think=F
             )
 
     return "Sorry, I couldn't finish that. Please try again.", trace
+
 
 
 

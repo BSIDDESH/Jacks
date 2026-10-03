@@ -90,6 +90,22 @@ def get_proposals(student_id: str = "S101", status: str | None = None):
     return {"proposals": list_proposals(student_id, status)}
 
 
+@app.post("/proposals/approve-all")
+def approve_all(student_id: str = "S101"):
+    results = [decide(p["id"], True) for p in list_proposals(student_id, "pending")]
+    return {
+        "total": len(results),
+        "executed": sum(1 for r in results if r.get("status") == "executed"),
+        "failed": sum(1 for r in results if r.get("status") == "failed"),
+    }
+
+
+@app.post("/proposals/reject-all")
+def reject_all(student_id: str = "S101"):
+    results = [decide(p["id"], False) for p in list_proposals(student_id, "pending")]
+    return {"total": len(results), "rejected": sum(1 for r in results if r.get("status") == "rejected")}
+
+
 @app.post("/proposals/{proposal_id}/approve")
 def approve(proposal_id: int):
     result = decide(proposal_id, True)
