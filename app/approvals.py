@@ -37,7 +37,7 @@ def list_proposals(student_id: str, status: str | None = None):
     if status:
         query += " AND status = ?"
         params.append(status)
-    query += " ORDER BY id DESC"
+    query += " ORDER BY start ASC, id ASC"
     with get_conn() as conn:
         rows = conn.execute(query, params).fetchall()
     return [dict(r) for r in rows]
@@ -96,3 +96,4 @@ PROPOSAL_SCHEMAS = [
         },
     }
 ]
+

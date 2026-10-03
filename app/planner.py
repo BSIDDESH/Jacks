@@ -1,7 +1,11 @@
 """Study planner: turns exam dates into study sessions saved as proposals.
-Scheduling is plain Python (least-slack-first), so it is exact and repeatable.
-The model only explains the result. Nothing here touches the calendar: every
-session is a pending proposal that the student must approve."""
+Scheduling is plain Python, so it is exact and repeatable. The model only
+explains the result. Nothing here touches the calendar: every session is a
+pending proposal that the student must approve.
+
+Sessions for each subject are spread evenly across the free slots before its
+exam (spaced revision, not one big cram), and re-running the planner only tops
+up sessions that are missing instead of adding a whole new plan."""
 from datetime import date, datetime, timedelta
 
 from app import calendar_service
@@ -34,6 +38,20 @@ def _busy(student_id: str):
     return busy
 
 
+def _existing_sessions(student_id: str):
+    """Study sessions already on the calendar, per subject: list of dates."""
+    found = {}
+    for ev in calendar_service.list_events(student_id):
+        if ev["title"].startswith("Study: "):
+            subject = ev["title"][len("Study: "):]
+            found.setdefault(subject, []).append(datetime.fromisoformat(ev["start"]).date())
+    return found
+
+
+def _label(st: datetime, en: datetime) -> str:
+    return f"{st.strftime('%a %d %b')}, {st.strftime('%H:%M')}-{en.strftime('%H:%M')}"
+
+
 def build_plan(student_id: str, sessions_per_subject: int):
     briefing = get_risk_briefing(student_id)
     if "error" in briefing:
@@ -47,38 +65,53 @@ def build_plan(student_id: str, sessions_per_subject: int):
     if not exams:
         return {"error": "No upcoming exams found. Upload a circular first."}
 
+    # Top up: count sessions already planned before each exam
+    existing = _existing_sessions(student_id)
+    quota = {}
+    for name, info in exams.items():
+        have = sum(1 for d in existing.get(name, []) if today <= d < info["date"])
+        quota[name] = max(0, sessions_per_subject - have)
+    if all(q == 0 for q in quota.values()):
+        return {"already_planned": True}
+
     busy = _busy(student_id)
     last_exam = max(v["date"] for v in exams.values())
-
-    slots = []
+    free = []
     day = today + timedelta(days=1)
     while day < last_exam:
         windows = WEEKEND_WINDOWS if day.weekday() >= 5 else WEEKDAY_WINDOWS
         for a, b in windows:
             st, en = _dt(day, a), _dt(day, b)
             if not any(st < be and bs < en for bs, be in busy):
-                slots.append((st, en))
+                free.append((st, en))
         day += timedelta(days=1)
 
-    quota = {name: sessions_per_subject for name in exams}
-    sessions = []
-    for st, en in slots:
-        d = st.date()
-        options = [n for n, q in quota.items() if q > 0 and d < exams[n]["date"]]
-        if not options:
+    sessions, unscheduled = [], {}
+    for name in sorted(exams, key=lambda n: exams[n]["date"]):
+        want = quota[name]
+        if want == 0:
             continue
-        # Least slack first: the subject with the fewest free days per session still owed
-        pick = min(options, key=lambda n: ((exams[n]["date"] - d).days / quota[n], exams[n]["date"]))
-        quota[pick] -= 1
-        sessions.append(
-            {
-                "subject": pick,
-                "start": st.strftime("%Y-%m-%dT%H:%M"),
-                "end": en.strftime("%Y-%m-%dT%H:%M"),
-                "details": exams[pick]["details"],
-            }
-        )
-    return {"sessions": sessions, "unscheduled": {n: q for n, q in quota.items() if q > 0}}
+        eligible = [s for s in free if s[0].date() < exams[name]["date"]]
+        take = min(want, len(eligible))
+        if take < want:
+            unscheduled[name] = want - take
+        if take == 0:
+            continue
+        # Evenly spaced picks across everything free before this exam
+        picks = [eligible[int((i + 0.5) * len(eligible) / take)] for i in range(take)]
+        for st, en in picks:
+            free.remove((st, en))
+            sessions.append(
+                {
+                    "subject": name,
+                    "start": st.strftime("%Y-%m-%dT%H:%M"),
+                    "end": en.strftime("%Y-%m-%dT%H:%M"),
+                    "label": _label(st, en),
+                    "details": exams[name]["details"],
+                }
+            )
+    sessions.sort(key=lambda s: s["start"])
+    return {"sessions": sessions, "unscheduled": unscheduled}
 
 
 def propose_study_plan(student_id: str, sessions_per_subject: int = DEFAULT_SESSIONS):
@@ -97,6 +130,11 @@ def propose_study_plan(student_id: str, sessions_per_subject: int = DEFAULT_SESS
     plan = build_plan(student_id, n)
     if "error" in plan:
         return plan
+    if plan.get("already_planned"):
+        return {
+            "sessions_proposed": 0,
+            "message": f"Every exam already has {n} study sessions on the calendar, so nothing new was proposed.",
+        }
     if not plan["sessions"]:
         return {"error": "No free study slots were found before the exams."}
 
@@ -107,16 +145,12 @@ def propose_study_plan(student_id: str, sessions_per_subject: int = DEFAULT_SESS
         )
         if "error" in result:
             continue
-        by_subject.setdefault(s["subject"], []).append(s["start"][:10])
+        by_subject.setdefault(s["subject"], []).append(s["label"])
 
-    summary = {
-        subj: {"sessions": len(dates), "first": dates[0], "last": dates[-1]}
-        for subj, dates in by_subject.items()
-    }
     return {
-        "sessions_proposed": sum(v["sessions"] for v in summary.values()),
+        "sessions_proposed": sum(len(v) for v in by_subject.values()),
         "hours_per_session": 2,
-        "by_subject": summary,
+        "sessions_by_subject": by_subject,
         "not_scheduled": plan["unscheduled"],
         "assumptions": ASSUMPTIONS,
         "message": "All sessions are saved as proposals. Nothing was added to the calendar; "
@@ -133,6 +167,7 @@ PLANNER_SCHEMAS = [
             "name": "propose_study_plan",
             "description": "Build a study plan for the upcoming exams from the uploaded circular "
             "and save every session as a proposal waiting for the student's approval. "
+            "Sessions already on the calendar count toward the total, so re-running only tops up. "
             "Call it once when the student asks for a study plan or schedule for their exams.",
             "parameters": {
                 "type": "object",
