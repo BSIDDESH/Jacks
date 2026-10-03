@@ -24,6 +24,34 @@ def init_db():
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS proposals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                start TEXT NOT NULL,
+                end TEXT NOT NULL,
+                notes TEXT,
+                status TEXT NOT NULL DEFAULT 'pending',
+                calendar_event_id INTEGER,
+                error TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS calendar_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                start TEXT NOT NULL,
+                end TEXT NOT NULL,
+                notes TEXT
+            )
+            """
+        )
 
 
 init_db()

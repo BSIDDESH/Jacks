@@ -31,6 +31,8 @@ Rules:
 - The student id is already known, so never ask the student for it.
 - To check every subject, call get_attendance once with no subject.
 - Include the actual percentages when you answer about attendance.
+- To schedule anything, call propose_calendar_event. It only creates a proposal. Tell the student it is waiting for their approval; never say it was added to the calendar.
+- Times are India time (IST). Use the format YYYY-MM-DDTHH:MM.
 - Keep replies short, friendly and practical (a few sentences).
 - You cannot change the student's calendar directly; you can only propose actions
   for the student to approve.
@@ -89,3 +91,4 @@ def run_agent(user_message: str, student_id: str = "S101", history=None, think=F
             )
 
     return "Sorry, I couldn't finish that. Please try again.", trace
+
