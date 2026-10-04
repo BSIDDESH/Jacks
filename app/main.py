@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -8,6 +10,7 @@ from app import calendar_service
 from app.tools import get_attendance as _get_attendance
 from app.task_tools import list_tasks as _list_tasks
 from app.circular_tools import process_circular, get_circular_events
+from app.events_tools import find_events, _cache_get, _rank
 
 app = FastAPI(title="JACK's API")
 
@@ -41,7 +44,7 @@ def chat(req: ChatRequest):
     return {"answer": answer, "trace": trace}
 
 
-# ---- Data endpoints for the dashboard (no model call) ----
+# ---- Data endpoints for the dashboard (no model call unless noted) ----
 
 @app.get("/attendance")
 def attendance(student_id: str = "S101"):
@@ -56,6 +59,23 @@ def tasks(student_id: str = "S101"):
 @app.get("/calendar")
 def get_calendar(student_id: str = "S101"):
     return {"events": calendar_service.list_events(student_id)}
+
+
+@app.get("/events")
+def events(student_id: str = "S101", refresh: bool = False, cached_only: bool = False):
+    """Hackathons and tech events. cached_only never spends search credits.
+    A refresh is ignored if the cache is under 10 minutes old, to protect credits."""
+    cached = _cache_get()
+    if cached_only:
+        if not cached:
+            return {"events": [], "empty": True}
+        fetched_at, items = cached
+        return {"events": _rank(items, student_id)[:4], "fetched_at": fetched_at, "from_cache": True}
+    if refresh and cached:
+        age = datetime.now(timezone.utc) - datetime.fromisoformat(cached[0])
+        if age < timedelta(minutes=10):
+            refresh = False
+    return find_events(student_id, refresh)
 
 
 # ---- Circulars ----

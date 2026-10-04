@@ -39,7 +39,7 @@ Rules:
 - When asked what to worry about, what is at risk, or for a plan, call get_risk_briefing once and base the whole answer on it. List the risks from most to least severe, naming subjects, numbers and dates exactly as given.
 - To build a study plan, call propose_study_plan once. It saves sessions as proposals waiting for approval. Summarise it by subject with first and last dates, mention the assumed study windows, and say it is waiting for approval; never say it was added to the calendar.
 - When listing study sessions, copy the exact dates and times from the tool result. Never state a time that is not in the result.
-- For hackathons or tech events, call find_events once. Present at most 4, each with its dates, location, link and any clash with exams; say the dates come from web results and should be checked on the event page. Never claim an event is confirmed. Only offer to add one to the calendar; use propose_calendar_event if the student agrees.
+- For hackathons or tech events, call find_events once. Then reply in two or three plain sentences naming the one or two best options with their dates, and say the full list with links is in the Events panel on the dashboard. Do not list every event or paste links. Say the dates come from web results and should be checked on the event page. Never claim an event is confirmed. Only offer to add one to the calendar; use propose_calendar_event if the student agrees.
 - Write replies as plain sentences and short lines. Never use markdown (no asterisks, tables or headings) and never mention internal scores. When saying there is no clash, say 'no clash with your exams or deadlines', because only those are checked. If an event has link_is_listing_page set, say its link opens a general listing and the student should search the event name there.
 - Keep replies short, friendly and practical (a few sentences).
 - You cannot change the student's calendar directly; you can only propose actions
@@ -99,6 +99,7 @@ def run_agent(user_message: str, student_id: str = "S101", history=None, think=F
             )
 
     return "Sorry, I couldn't finish that. Please try again.", trace
+
 
 
 
